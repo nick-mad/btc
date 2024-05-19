@@ -1,0 +1,55 @@
+services:
+    web:
+        build:
+            context: .
+        environment:
+            docker: true
+            DB_HOST: mysql
+            DB_NAME: btc
+            DB_USER: root
+            DB_PASSWORD: root
+            MAIL_SERVER: email_server
+            MAIL_PORT: email_port
+            MAIL_USERNAME: email
+            MAIL_PASSWORD: password
+        ports:
+            - 9000:80
+        depends_on:
+            db:
+                condition: service_healthy
+            migrate:
+                condition: service_completed_successfully
+    migrate:
+        build:
+            context: .
+        command: ./vendor/bin/doctrine-migrations migrate --no-interaction
+        environment:
+            DB_HOST: mysql
+            DB_NAME: btc
+            DB_USER: root
+            DB_PASSWORD: root
+        depends_on:
+            db:
+                condition: service_healthy
+    db:
+        image: mariadb
+        restart: always
+        user: root
+        container_name: mysql
+        volumes:
+            - db-data:/var/lib/mysql
+        environment:
+            MARIADB_ROOT_PASSWORD: root
+            MARIADB_DATABASE: btc
+        ports:
+            - "3307:3306"
+        expose:
+            - 3306
+        healthcheck:
+            test:  ["CMD", "/usr/local/bin/healthcheck.sh", "--su-mysql", "--connect",  "--innodb_initialized"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+volumes:
+    db-data:
+
